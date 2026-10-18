@@ -399,6 +399,8 @@ predictive-parts-warranty-agent/
 |   ├── test_predict.py
 |   └── test_api.py
 ├── README.md
+├── EXPLANATION.md          (interview guide)
+├── DETAILED_EXPLANATION.md (file-by-file and Random Forest deep dive)
 ├── requirements.txt
 ├── .gitignore
 └── .env              (you create this; not committed)
@@ -417,6 +419,8 @@ predictive-parts-warranty-agent/
 | `data/` | Training dataset |
 | `models/` | Serialized model |
 | `tests/` | pytest suite for the model and the API (the LLM is mocked) |
+
+For a line-by-line explanation of every file and of how the Random Forest reaches its answer, see [DETAILED_EXPLANATION.md](DETAILED_EXPLANATION.md).
 
 ## 15. Setup
 

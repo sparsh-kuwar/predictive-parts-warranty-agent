@@ -1,6 +1,6 @@
 # Predictive Parts & Warranty Agent: interview guide
 
-This guide is for explaining and defending the project in an interview. Each section names the file it describes.
+This guide is for explaining and defending the project in an interview. Each section names the file it describes. For a deeper, file-by-file explanation of how the Random Forest and the rest of the pipeline work, see [DETAILED_EXPLANATION.md](DETAILED_EXPLANATION.md).
 
 ## 1. The 30-second pitch
 
