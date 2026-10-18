@@ -64,7 +64,7 @@ How to say it: *"I didn't have access to real failure records, so I generated da
 ## 6. Weaknesses to state openly
 
 1. **Synthetic data**: see section 4.
-2. **No deployment.** The API runs locally with Flask's development server. Production would use Gunicorn behind a proper host.
+2. **Free-tier deployment.** It's deployed on Render (`render.yaml`, Gunicorn, `/health` check), but the API has no authentication or rate limiting yet.
 3. **The default chat model name** in `warranty_agent.py` must be one your OpenAI account can use. Override it with `OPENAI_MODEL` in `.env`.
 4. **The saved model is tied to scikit-learn 1.9.1** (pinned in `requirements.txt`). Pickled models aren't guaranteed to load in other scikit-learn versions, so retrain after an upgrade.
 5. **Thresholds 0.70 / 0.40 are arbitrary.** They should come from business costs: a missed failure (downtime, emergency repair) vs. a false alarm (unneeded inspection).
@@ -108,7 +108,7 @@ Leakage means the model learns from information it won't have at prediction time
 
 ## 8. What I would build next
 
-1. Docker + Gunicorn deployment, with the API behind authentication.
+1. API authentication and rate limiting on the Render deployment.
 2. Choose the threshold from the PR curve, calibrate probabilities, use permutation importance.
 3. Compare models (LogReg / RF / XGBoost) with cross-validation.
 4. Structured LLM output grounded in a parts catalogue.

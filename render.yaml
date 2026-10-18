@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: predictive-parts-warranty-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # One worker keeps memory low on the free plan; threads handle concurrent requests
+    startCommand: gunicorn --chdir src api:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.6-luna

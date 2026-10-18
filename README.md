@@ -402,6 +402,8 @@ predictive-parts-warranty-agent/
 ├── EXPLANATION.md          (interview guide)
 ├── DETAILED_EXPLANATION.md (file-by-file and Random Forest deep dive)
 ├── requirements.txt
+├── render.yaml             (Render deployment blueprint)
+├── .python-version
 ├── .gitignore
 └── .env              (you create this; not committed)
 ```
@@ -499,6 +501,22 @@ Run the tests (no API key needed; the LLM is mocked):
 ```bash
 python -m pytest -q
 ```
+
+### Deploy to Render
+
+The repo includes a Render Blueprint (`render.yaml`). It runs the API with Gunicorn on Python 3.13 and uses `/health` as the health check.
+
+1. In the Render dashboard, choose **New → Blueprint** and select this repository.
+2. When asked, enter your `OPENAI_API_KEY`. It is stored as a secret in Render and is never committed.
+3. Click **Apply**. When the build finishes, open the service URL. `GET /` lists the endpoints.
+
+```bash
+curl -X POST "https://<your-service>.onrender.com/predict?recommend=false" \
+  -H "Content-Type: application/json" \
+  -d '{"equipment_age_years":9.5,"operating_hours":10500,"temperature_c":91,"vibration_mm_s":6.5,"pressure_bar":3.1,"maintenance_count":2,"days_since_maintenance":280,"part_age_hours":4200,"previous_failures":3}'
+```
+
+On the free plan the service sleeps after 15 minutes without traffic, so the first request after that takes 30–60 seconds.
 
 ## 17. Example Scenario
 

@@ -63,6 +63,19 @@ def create_app():
     app = Flask(__name__)
     app.json.sort_keys = False
 
+    @app.get("/")
+    def index():
+        # Opening the deployed URL in a browser shows how to use the API
+        return {
+            "service": "Predictive Parts & Warranty Agent",
+            "endpoints": {
+                "GET /health": "Liveness check",
+                "POST /predict": "JSON body with the 9 equipment features; "
+                                 "add ?recommend=false to skip the LLM"
+            },
+            "features": FEATURES
+        }
+
     @app.get("/health")
     def health():
         return {"status": "healthy"}

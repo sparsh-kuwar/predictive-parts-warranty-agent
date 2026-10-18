@@ -11,6 +11,13 @@ def client(monkeypatch):
     return api.create_app().test_client()
 
 
+def test_index_lists_the_endpoints_and_features(client):
+    body = client.get("/").get_json()
+
+    assert "POST /predict" in body["endpoints"]
+    assert body["features"] == api.FEATURES
+
+
 def test_health(client):
     response = client.get("/health")
 
