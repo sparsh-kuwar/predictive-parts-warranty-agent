@@ -1,11 +1,16 @@
+from pathlib import Path
+
 import joblib
 import pandas as pd
 
 
-# Load trained model
-model = joblib.load(
-    "models/failure_prediction_model.pkl"
+MODEL_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "models" / "failure_prediction_model.pkl"
 )
+
+# Load trained model
+model = joblib.load(MODEL_PATH)
 
 
 FEATURES = [

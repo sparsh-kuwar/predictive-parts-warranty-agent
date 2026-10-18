@@ -371,6 +371,10 @@ curl -X POST http://127.0.0.1:5000/predict -H "Content-Type: application/json" -
 
 The API validates the input, runs the ML model, generates the LLM recommendation, and returns JSON.
 
+Validation rules: all 9 features are required and must be numbers; `maintenance_count`, `days_since_maintenance` and `previous_failures` must be whole numbers; every feature except `temperature_c` must be zero or more. Invalid input returns `422` with a list of problems, and a missing JSON body returns `400`.
+
+Add `?recommend=false` to get only the ML prediction without calling the LLM. If the LLM call fails (no API key, network error, rate limit), the response still contains the prediction, with `"recommendation": null` and a `recommendation_error` message.
+
 ## 14. Project Structure
 
 ```text
@@ -391,10 +395,13 @@ predictive-parts-warranty-agent/
 |   └── api.py
 |
 ├── tests/
+|   ├── conftest.py
+|   ├── test_predict.py
+|   └── test_api.py
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-└── .env
+└── .env              (you create this; not committed)
 ```
 
 ### File responsibilities
@@ -409,7 +416,7 @@ predictive-parts-warranty-agent/
 | `api.py` | Flask REST API |
 | `data/` | Training dataset |
 | `models/` | Serialized model |
-| `tests/` | Tests |
+| `tests/` | pytest suite for the model and the API (the LLM is mocked) |
 
 ## 15. Setup
 
@@ -423,6 +430,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Requires Python 3.11 or newer (pandas 3).
+
 If installing manually:
 
 ```bash
@@ -434,6 +443,8 @@ Create `.env`:
 
 ```text
 OPENAI_API_KEY=your_api_key_here
+# optional: override the chat model used for recommendations
+OPENAI_MODEL=gpt-5.6-luna
 ```
 
 Never commit `.env`.
@@ -477,6 +488,12 @@ Start the API:
 
 ```bash
 python src/api.py
+```
+
+Run the tests (no API key needed; the LLM is mocked):
+
+```bash
+python -m pytest -q
 ```
 
 ## 17. Example Scenario

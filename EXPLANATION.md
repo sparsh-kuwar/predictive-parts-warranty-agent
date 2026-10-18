@@ -12,7 +12,9 @@ This guide is for explaining and defending the project in an interview. Each sec
 2. **Training** (`src/train_model.py`). 80/20 **stratified** split, `RandomForestClassifier(n_estimators=200, max_depth=8, class_weight="balanced", random_state=42)`, metrics printed, model saved with `joblib` to `models/failure_prediction_model.pkl`.
 3. **Prediction** (`src/predict.py`). Loads the saved model once, builds a one-row DataFrame **with the same column order as training**, and returns `failure_predicted`, `failure_probability` (`predict_proba`) and `risk_level` (≥0.70 HIGH, ≥0.40 MEDIUM, else LOW).
 4. **Recommendation** (`src/warranty_agent.py`). LangChain `ChatPromptTemplate | ChatOpenAI(temperature=0)` gets the equipment data and the prediction, and returns Risk Assessment / Likely Failure Concern / Recommended Parts / Warranty-Service Recommendation / Priority. The prompt says: *"The ML model predicts risk, not confirmed failure."*
-5. **Demo** (`src/main.py`). Runs one example pump end to end in the terminal.
+5. **REST API** (`src/api.py`). Flask `GET /health` and `POST /predict`. `validate_equipment` checks that all 9 features are present, numeric (booleans rejected), finite, whole numbers for counts and non-negative except temperature → `422` with a list of problems. If the LLM fails, the prediction is still returned with `recommendation: null`. `?recommend=false` skips the LLM.
+6. **Demo** (`src/main.py`). Runs one example pump end to end in the terminal.
+7. **Tests** (`tests/`). 20 pytest tests: known high- and low-risk pumps, probability range, thresholds, input key order, the feature list matching the trained model, and every API path. The LLM is mocked, so no API key is needed.
 
 ## 3. The numbers (rerun these yourself before the interview)
 
@@ -61,18 +63,16 @@ How to say it: *"I didn't have access to real failure records, so I generated da
 
 ## 6. Weaknesses to state openly
 
-Fix the first three before the interview if you can. They are the ones an interviewer will spot.
-
-1. **The README describes `src/api.py` (a Flask `/predict` API) and a `tests/` folder that aren't in the repo.** Either add them or remove them from the README. Don't claim a REST API that isn't there.
-2. **`requirements.txt` is missing `pandas`, `scikit-learn`, `joblib` and `numpy`**, so a fresh install can't train or predict.
-3. **`warranty_agent.py` line 2 has a stray `load_dotenv`** (no parentheses, does nothing). Also confirm the configured model name works with your OpenAI account.
-4. **Synthetic data**: see section 4.
+1. **Synthetic data**: see section 4.
+2. **No deployment.** The API runs locally with Flask's development server. Production would use Gunicorn behind a proper host.
+3. **The default chat model name** in `warranty_agent.py` must be one your OpenAI account can use. Override it with `OPENAI_MODEL` in `.env`.
+4. **The saved model is tied to scikit-learn 1.9.1** (pinned in `requirements.txt`). Pickled models aren't guaranteed to load in other scikit-learn versions, so retrain after an upgrade.
 5. **Thresholds 0.70 / 0.40 are arbitrary.** They should come from business costs: a missed failure (downtime, emergency repair) vs. a false alarm (unneeded inspection).
 6. **The decision threshold for `failure_predicted` is the default 0.5.** With imbalanced data, a lower threshold would raise recall.
 7. **One train/test split, no cross-validation, no hyperparameter search.**
 8. **No time dimension.** Real failure prediction uses sensor *trends* (vibration rising over a week), not one snapshot. Real data would also need a time-based split to avoid leakage.
 9. **The LLM output is free text**, not schema-validated JSON, so other systems can't consume it reliably.
-10. **No input validation**: missing or out-of-range features aren't checked before `predict`.
+10. **Validation checks types and signs, not physical ranges.** A temperature of 5,000 °C is accepted. Real limits would come from the equipment spec.
 
 ## 7. Likely interview questions
 
@@ -91,6 +91,9 @@ The fraction of the 200 trees that vote "failure" (averaged leaf probabilities).
 **Q: Why not just ask the LLM if the machine will fail?**
 It can't be evaluated or reproduced like a classifier, it is poor at numeric reasoning over many features, and it can't learn from your historical data without fine-tuning. The classifier is measurable. The LLM adds the explanation layer.
 
+**Q: What happens if the LLM is down?**
+The API still returns the ML prediction with `recommendation: null` and an error note. The prediction is the critical part and doesn't depend on the LLM, so an LLM outage shouldn't hide a HIGH-risk result. A test covers this.
+
 **Q: How do you stop the LLM recommending the wrong part?**
 At the moment only through the prompt ("risk, not confirmed failure", temperature 0). Better: give it a **parts catalogue and failure-mode table to choose from** (retrieval), require JSON output with a fixed set of part ids, and validate against the catalogue, the same grounding approach as in my field-service and claims projects.
 
@@ -98,14 +101,14 @@ At the moment only through the prompt ("risk, not confirmed failure", temperatur
 High risk on a unit still under warranty → schedule proactive service and pre-order the part, which is cheaper than an emergency warranty repair. High risk near the end of warranty → inspect before it expires. Out of warranty → offer an extended-warranty or service contract. Production would read warranty status from a registry, not leave it to the LLM.
 
 **Q: How would you deploy and monitor it?**
-A Flask/FastAPI `/predict` endpoint loading the model at startup, input validation with Pydantic, model versioning, and monitoring of **data drift** (feature distributions) and **outcome tracking** (did the predicted failures happen?) to trigger retraining.
+The Flask `/predict` endpoint already loads the model once at startup and validates input. For production: Gunicorn in a Docker container, model versioning, and monitoring of **data drift** (feature distributions) and **outcome tracking** (did the predicted failures happen?) to trigger retraining.
 
 **Q: What is data leakage, and could it happen here?**
 Leakage means the model learns from information it won't have at prediction time. With real data, features like `previous_failures` must be counted *before* the prediction date, and the split must be by time, otherwise the model "sees the future".
 
 ## 8. What I would build next
 
-1. Add the missing Flask/FastAPI API, `requirements.txt` entries and tests (section 6).
+1. Docker + Gunicorn deployment, with the API behind authentication.
 2. Choose the threshold from the PR curve, calibrate probabilities, use permutation importance.
 3. Compare models (LogReg / RF / XGBoost) with cross-validation.
 4. Structured LLM output grounded in a parts catalogue.

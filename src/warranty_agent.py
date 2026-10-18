@@ -1,15 +1,27 @@
-from dotenv import load_dotenv 
-load_dotenv
-from langchain_openai import ChatOpenAI
+import os
+
+from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 
 load_dotenv()
 
 
-llm = ChatOpenAI(
-    model="gpt-5.6-luna",
-    temperature=0
-)
+MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+
+_llm = None
+
+
+def get_llm():
+    # Created on first use, so importing this module does not need an API key.
+    global _llm
+    if _llm is None:
+        from langchain_openai import ChatOpenAI
+
+        _llm = ChatOpenAI(
+            model=MODEL_NAME,
+            temperature=0
+        )
+    return _llm
 
 
 prompt = ChatPromptTemplate.from_template("""
@@ -49,7 +61,7 @@ The ML model predicts risk, not confirmed failure.
 
 def generate_recommendation(equipment, prediction):
 
-    chain = prompt | llm
+    chain = prompt | get_llm()
 
     response = chain.invoke({
         "equipment": equipment,
